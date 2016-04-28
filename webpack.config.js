@@ -5,7 +5,7 @@ module.exports = {
   entry: ['./src/main'],
   output: {
     path: path.normalize(__dirname + '/lib'),
-    library: "fetch",
+    library: "tfetch",
     filename: "fetch.js"
   },
 
@@ -25,9 +25,10 @@ module.exports = {
     ],
     extensions: ['', '.js', '.jsx'],
     alias: {}
-  }
+  },
+  plugins: [new webpack.optimize.UglifyJsPlugin({
+    compress: {warnings: false}
+  })]
 };
 
-module.exports.plugins.push(new webpack.optimize.UglifyJsPlugin({
-  compress: { warnings: false }
-}));
+
