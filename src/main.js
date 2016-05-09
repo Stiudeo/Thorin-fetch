@@ -1,6 +1,10 @@
 'use strict';
 import 'whatwg-fetch';
-const LOADED_FETCHERS = {};
+const LOADED_FETCHERS = {},
+  FETCHER_EVENTS = {
+    error: [],
+    success: []
+  };       // a hash of {error:[fns],success:[fns]} listeners for all the fetchers.
 
 function parseConfig(config) {
   if(!config.url) config.url = window.location.href.split(window.location.pathname)[0] + '/dispatch';
@@ -20,6 +24,34 @@ function parseConfig(config) {
     config.credentials = 'same-origin';
   }
   return config;
+}
+
+function registerFetchEvent(name, type, fn) {
+  if(['success', 'error'].indexOf(type) === -1) {
+    console.warn('thorin-fetcher: on(event, fn): event should be either error or success.');
+    return false;
+  }
+  if(typeof fn !== 'function') {
+    console.warn('thorin-fetcher: on(event, fn): fn should be a function');
+    return false;
+  }
+  let item = {
+    fn: fn
+  };
+  if(typeof name === 'string') item.name = name;
+  FETCHER_EVENTS[type].push(item);
+  return true;
+}
+
+function handleFetchEvent(name, type, data) {
+  if(typeof FETCHER_EVENTS[type] === 'undefined') return;
+  if(FETCHER_EVENTS[type].length === 0) return;
+  for(let i=0; i < FETCHER_EVENTS[type].length; i++) {
+    let item = FETCHER_EVENTS[type][i],
+      shouldCall = (typeof item.name === 'string' && item.name === name) || (typeof item.name === 'undefined');
+    if(!shouldCall) continue;
+    item.fn(data);
+  }
 }
 
 function parseError(e) {
@@ -51,8 +83,8 @@ function parseError(e) {
  *  - headers (object)  - additional headers to send
  *  - authorization (string) - an additional Authorization: Bearer {token} to attach
  *  - credentials (boolean) - should we send the cookies when calling a different url? defaults to false
-* */
-function createFetcher(config) {
+ * */
+function createFetcher(config, name) {
   parseConfig(config);
   /* This is the fetcher wrapper. */
   function doFetch(action, payload) {
@@ -86,11 +118,14 @@ function createFetcher(config) {
         }
         delete res.type;
         if(typeof res.meta === 'undefined') {
+          handleFetchEvent(name, 'success', res.result);
           return resolve(res.result);
         }
+        handleFetchEvent(name, 'success', res);
         resolve(res);
       }).catch((e) => {
         let err = parseError(e);
+        handleFetchEvent(name, 'error', err);
         reject(err);
       });
     });
@@ -108,29 +143,34 @@ function createFetcher(config) {
     }
     console.warn('thorin-fetcher: usage: setConfig(key, value)');
     return this;
-  }
+  };
+
+  /* Listen for errors that the fetcher may have encountered. */
+  doFetch.on = registerFetchEvent.bind(this, name);
   return doFetch;
 }
 
 /**
-* Prepares a file upload fetcher.
+ * Prepares a file upload fetcher.
  * This works perfectly with thorin-plugin-upload
  * SAME configuration
-* */
+ * */
 function createUploadFetcher(config) {
   parseConfig(config);
   if(!config.name) config.name = 'asset'; // the name of the file input
   delete config.headers['Content-Type'];
   const obj = {};
+  let name = 'upload' + nidx;
+  nidx++;
   /*
-  * Creates an actual fetch request to be sent.
-  * */
+   * Creates an actual fetch request to be sent.
+   * */
   obj.send = function SendUpload(fileObj) {
     return new Promise((resolve, reject) => {
       if(typeof fileObj !== 'object' || !fileObj || typeof fileObj.type !== 'string' || typeof fileObj.name !== 'string') {
         return reject(parseError(new Error('Please select a file to upload.')));
       }
-      var data = new FormData()
+      var data = new FormData();
       data.append(config.name, fileObj);
       let statusCode, statusMsg;
       const fetchOpt = {
@@ -138,7 +178,7 @@ function createUploadFetcher(config) {
         headers: config.headers,
         credentials: config.credentials,
         body: data
-      }
+      };
       fetch(config.url, fetchOpt).then((res) => {
         statusCode = res.status;
         statusMsg = res.statusText;
@@ -149,34 +189,39 @@ function createUploadFetcher(config) {
         }
         delete res.type;
         if(typeof res.meta === 'undefined') {
+          handleFetchEvent(name, 'success', res.result);
           return resolve(res.result);
         }
+        handleFetchEvent(name, 'success', res);
         resolve(res);
       }).catch((e) => {
         let err = parseError(e);
+        handleFetchEvent(name, 'error', err);
         reject(err);
       });
     });
-  }
-
+  };
+  obj.on = registerFetchEvent.bind(this, name);
   return obj;
 }
 
 /**
-* This is the implicit fetcher creator.
+ * This is the implicit fetcher creator.
  * Arguments:
  *  - name (string) if specified with no options, it will try returning the given fetcher by name or null.
  *  - name (object) if specified as an object, it will return a fetcher instance withouth caching it.
  *  - opt (object) - used with name, creates and saves a fetcher instance.
-* */
+ * */
+let nidx = 0;
 function create(name, opt) {
   // RETURN a fetcher.
   if(typeof name === 'string' && typeof opt === 'undefined') {
     return LOADED_FETCHERS[name] || null;
   }
+  nidx++;
   // CREATE anonymous
   if(typeof name === 'object' && name && typeof opt === 'undefined') {
-    return createFetcher(name);
+    return createFetcher(name, 'fetcher' + nidx);
   }
   // CREATE named fetcher
   if(typeof name === 'string' && typeof opt === 'object' && opt) {
@@ -184,7 +229,7 @@ function create(name, opt) {
       console.warn('thorin-fetch: fetcher called ' + name + ' already exists. Returning it in stead.');
       return LOADED_FETCHERS[name];
     }
-    let fetcherObj = createFetcher(opt);
+    let fetcherObj = createFetcher(opt, name);
     LOADED_FETCHERS[name] = fetcherObj;
     return fetcherObj;
   }
@@ -192,6 +237,8 @@ function create(name, opt) {
 }
 module.exports = create;
 /*
-* Attach the createUploadFetcher functionality
-* */
+ * Attach the createUploadFetcher functionality
+ * */
 module.exports.upload = createUploadFetcher;
+/* Listen to specific events on all fetchers. */
+module.exports.on = registerFetchEvent.bind(module.exports, undefined);
