@@ -7,7 +7,15 @@ const LOADED_FETCHERS = {},
   };       // a hash of {error:[fns],success:[fns]} listeners for all the fetchers.
 
 function parseConfig(config) {
-  if(!config.url) config.url = window.location.href.split(window.location.pathname)[0] + '/dispatch';
+  if(!config.url) {
+    if(window.location.pathname === '/') {
+      config.url = window.location.href.substr(0, window.location.href.length - 1);
+    } else {
+      config.url = window.location.href.split(window.location.pathname)[0];
+    }
+    config.url += '/dispatch';
+  }
+
   let tmp = config.url.split('://'),
     full = tmp[0] + '://'+ tmp[1].replace(/\/\//g,'/');
   config.url = full;
