@@ -62,7 +62,7 @@ function handleFetchEvent(name, type, data) {
   }
 }
 
-function parseError(e) {
+function parseError(e, _status) {
   let err;
   if(typeof e === 'object' && e) {
     if(e instanceof Error) {
@@ -79,6 +79,7 @@ function parseError(e) {
   });
   if(!err.code) err.code = 'SERVER_ERROR';
   if(!err.status) err.status = 500;
+  if(_status) err.status = _status;
   return err;
 }
 
@@ -132,7 +133,7 @@ function createFetcher(config, name) {
         handleFetchEvent(name, 'success', res);
         resolve(res);
       }).catch((e) => {
-        let err = parseError(e);
+        let err = parseError(e, statusCode);
         handleFetchEvent(name, 'error', err);
         reject(err);
       });
@@ -203,7 +204,7 @@ function createUploadFetcher(config) {
         handleFetchEvent(name, 'success', res);
         resolve(res);
       }).catch((e) => {
-        let err = parseError(e);
+        let err = parseError(e, statusCode);
         handleFetchEvent(name, 'error', err);
         reject(err);
       });
