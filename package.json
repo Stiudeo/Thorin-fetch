@@ -1,7 +1,7 @@
 {
   "name": "thorin-fetch",
   "author": "Stiudeo",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "scripts": {
     "build": "babel src --out-dir lib",
     "dev": "babel src --out-dir lib --watch"
@@ -21,10 +21,10 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Stiudeo/Thorin-fetch"
+    "url": "https://github.com/Thorinjs/Thorin-fetch"
   },
   "homepage": "http://thorinjs.com",
   "bugs": {
-    "url": "https://github.com/Stiudeo/Thorin-fetch/issues"
+    "url": "https://github.com/Thorinjs/Thorin-fetch/issues"
   }
 }
