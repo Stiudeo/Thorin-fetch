@@ -97,6 +97,10 @@ function createFetcher(config, name) {
   parseConfig(config);
   /* This is the fetcher wrapper. */
   function doFetch(action, payload) {
+    if(typeof action === 'object' && action && typeof action.type === 'string') {
+      payload = action.payload;
+      action = action.type;
+    }
     if(typeof action !== 'string') {
       console.error('thorin-fetcher: usage fetcher("actionName", {payload})');
       return this;
