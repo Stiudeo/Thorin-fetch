@@ -7,8 +7,8 @@ const LOADED_FETCHERS = {},
   };       // a hash of {error:[fns],success:[fns]} listeners for all the fetchers.
 
 function parseConfig(config) {
-  if(!config.url) {
-    if(window.location.pathname === '/') {
+  if (!config.url) {
+    if (window.location.pathname === '/') {
       config.url = window.location.href.substr(0, window.location.href.length - 1);
     } else {
       config.url = window.location.href.split(window.location.pathname)[0];
@@ -17,55 +17,55 @@ function parseConfig(config) {
   }
 
   let tmp = config.url.split('://'),
-    full = tmp[0] + '://'+ tmp[1].replace(/\/\//g,'/');
+    full = tmp[0] + '://' + tmp[1].replace(/\/\//g, '/');
   config.url = full;
-  if(typeof config.headers !== 'object' || !config.headers) config.headers = {};
+  if (typeof config.headers !== 'object' || !config.headers) config.headers = {};
   config.headers['Accept'] = 'application/json';
   config.headers['Content-Type'] = 'application/json';
-  if(typeof config.authorization === 'string') {
+  if (typeof config.authorization === 'string') {
     config.headers['Authorization'] = 'Bearer ' + config.authorization;
   }
-  if(config.credentials === true) {
+  if (config.credentials === true) {
     config.credentials = 'include';
   }
-  if(typeof config.credentials !== 'string') {
+  if (typeof config.credentials !== 'string') {
     config.credentials = 'same-origin';
   }
   return config;
 }
 
 function registerFetchEvent(name, type, fn) {
-  if(['success', 'error'].indexOf(type) === -1) {
+  if (['success', 'error'].indexOf(type) === -1) {
     console.warn('thorin-fetcher: on(event, fn): event should be either error or success.');
     return false;
   }
-  if(typeof fn !== 'function') {
+  if (typeof fn !== 'function') {
     console.warn('thorin-fetcher: on(event, fn): fn should be a function');
     return false;
   }
   let item = {
     fn: fn
   };
-  if(typeof name === 'string') item.name = name;
+  if (typeof name === 'string') item.name = name;
   FETCHER_EVENTS[type].push(item);
   return true;
 }
 
 function handleFetchEvent(name, type, data) {
-  if(typeof FETCHER_EVENTS[type] === 'undefined') return;
-  if(FETCHER_EVENTS[type].length === 0) return;
-  for(let i=0; i < FETCHER_EVENTS[type].length; i++) {
+  if (typeof FETCHER_EVENTS[type] === 'undefined') return;
+  if (FETCHER_EVENTS[type].length === 0) return;
+  for (let i = 0; i < FETCHER_EVENTS[type].length; i++) {
     let item = FETCHER_EVENTS[type][i],
       shouldCall = (typeof item.name === 'string' && item.name === name) || (typeof item.name === 'undefined');
-    if(!shouldCall) continue;
+    if (!shouldCall) continue;
     item.fn(data);
   }
 }
 
 function parseError(e, _status) {
   let err;
-  if(typeof e === 'object' && e) {
-    if(e instanceof Error) {
+  if (typeof e === 'object' && e) {
+    if (e instanceof Error) {
       err = e;
     } else {
       err = new Error(e.message || 'Failed to complete fetch request.');
@@ -77,9 +77,9 @@ function parseError(e, _status) {
   Object.keys(e).forEach((key) => {
     err[key] = e[key];
   });
-  if(!err.code) err.code = 'SERVER_ERROR';
-  if(!err.status) err.status = 500;
-  if(_status) err.status = _status;
+  if (!err.code) err.code = 'SERVER_ERROR';
+  if (!err.status) err.status = 500;
+  if (_status) err.status = _status;
   return err;
 }
 
@@ -97,16 +97,16 @@ function createFetcher(config, name) {
   parseConfig(config);
   /* This is the fetcher wrapper. */
   function doFetch(action, payload) {
-    if(typeof action === 'object' && action && typeof action.type === 'string') {
+    if (typeof action === 'object' && action && typeof action.type === 'string') {
       payload = action.payload;
       action = action.type;
     }
-    if(typeof action !== 'string') {
+    if (typeof action !== 'string') {
       console.error('thorin-fetcher: usage fetcher("actionName", {payload})');
       return this;
     }
-    if(typeof payload === 'undefined' || payload == null) payload = {};
-    if(typeof payload !== 'object' && !payload) {
+    if (typeof payload === 'undefined' || payload == null) payload = {};
+    if (typeof payload !== 'object' && !payload) {
       console.error('thorin-fetcher: payload must be an object.');
       return this;
     }
@@ -126,11 +126,11 @@ function createFetcher(config, name) {
         statusMsg = res.statusText;
         return res.json();
       }).then((res) => {
-        if(res.error) {
+        if (res.error) {
           throw res.error;
         }
         delete res.type;
-        if(typeof res.meta === 'undefined') {
+        if (typeof res.meta === 'undefined') {
           handleFetchEvent(name, 'success', res.result);
           return resolve(res.result);
         }
@@ -146,12 +146,12 @@ function createFetcher(config, name) {
 
   /* Overrides the default configuration with a key/value */
   doFetch.setConfig = function SetConfig(key, value) {
-    if(typeof key === 'string' && typeof value !== 'string') {
-      if(key === 'authorization') {
-        config.headers['Authorization'] = 'Bearer ' + value;
-      } else {
-        config[key] = value;
-      }
+    if (key === "authorization" && typeof value === 'string') {
+      config.headers['Authorization'] = 'Bearer ' + value;
+      return this;
+    }
+    if (typeof key === 'string' && typeof value !== 'string') {
+      config[key] = value;
       return this;
     }
     console.warn('thorin-fetcher: usage: setConfig(key, value)');
@@ -170,7 +170,7 @@ function createFetcher(config, name) {
  * */
 function createUploadFetcher(config) {
   parseConfig(config);
-  if(!config.name) config.name = 'asset'; // the name of the file input
+  if (!config.name) config.name = 'asset'; // the name of the file input
   delete config.headers['Content-Type'];
   const obj = {};
   let name = 'upload' + nidx;
@@ -180,7 +180,7 @@ function createUploadFetcher(config) {
    * */
   obj.send = function SendUpload(fileObj) {
     return new Promise((resolve, reject) => {
-      if(typeof fileObj !== 'object' || !fileObj || typeof fileObj.type !== 'string' || typeof fileObj.name !== 'string') {
+      if (typeof fileObj !== 'object' || !fileObj || typeof fileObj.type !== 'string' || typeof fileObj.name !== 'string') {
         return reject(parseError(new Error('Please select a file to upload.')));
       }
       var data = new FormData();
@@ -197,11 +197,11 @@ function createUploadFetcher(config) {
         statusMsg = res.statusText;
         return res.json();
       }).then((res) => {
-        if(res.error) {
+        if (res.error) {
           throw res.error;
         }
         delete res.type;
-        if(typeof res.meta === 'undefined') {
+        if (typeof res.meta === 'undefined') {
           handleFetchEvent(name, 'success', res.result);
           return resolve(res.result);
         }
@@ -228,17 +228,17 @@ function createUploadFetcher(config) {
 let nidx = 0;
 function create(name, opt) {
   // RETURN a fetcher.
-  if(typeof name === 'string' && typeof opt === 'undefined') {
+  if (typeof name === 'string' && typeof opt === 'undefined') {
     return LOADED_FETCHERS[name] || null;
   }
   nidx++;
   // CREATE anonymous
-  if(typeof name === 'object' && name && typeof opt === 'undefined') {
+  if (typeof name === 'object' && name && typeof opt === 'undefined') {
     return createFetcher(name, 'fetcher' + nidx);
   }
   // CREATE named fetcher
-  if(typeof name === 'string' && typeof opt === 'object' && opt) {
-    if(typeof LOADED_FETCHERS[name] !== 'undefined') {
+  if (typeof name === 'string' && typeof opt === 'object' && opt) {
+    if (typeof LOADED_FETCHERS[name] !== 'undefined') {
       console.warn('thorin-fetch: fetcher called ' + name + ' already exists. Returning it in stead.');
       return LOADED_FETCHERS[name];
     }
