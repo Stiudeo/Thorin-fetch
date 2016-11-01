@@ -66,20 +66,32 @@ function parseError(e, _status) {
   let err;
   if (typeof e === 'object' && e) {
     if (e instanceof Error) {
-      err = e;
+      if (e instanceof TypeError || e instanceof SyntaxError) {
+        if (_status >= 500 && status <= 599) {
+          if (_status === 502 || _status === 503) {
+            err = new Error("The requested resource is temporary unavailable");
+          } else {
+            err = new Error('An unexpected error occurred');
+          }
+        } else {
+          err = new Error('An error occurred while loading resources');
+        }
+      } else {
+        err = e;
+      }
     } else {
-      err = new Error(e.message || 'Failed to complete fetch request.');
+      err = new Error(e.message || 'An error occurred while loading resources');
     }
   } else {
     e = {};
-    err = new Error(e.message || 'Failed to complete fetch request');
+    err = new Error(e.message || 'An error occurred while loading resources');
   }
   Object.keys(e).forEach((key) => {
     err[key] = e[key];
   });
   if (!err.code) err.code = 'SERVER_ERROR';
-  if (!err.status) err.status = 500;
   if (_status) err.status = _status;
+  if (!err.status) err.status = 500;
   return err;
 }
 
