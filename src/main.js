@@ -109,9 +109,11 @@ function createFetcher(config, name) {
   parseConfig(config);
   /* This is the fetcher wrapper. */
   function doFetch(action, payload) {
+    let filter;
     if (typeof action === 'object' && action && typeof action.type === 'string') {
       payload = action.payload;
       action = action.type;
+      filter = action.filter;
     }
     if (typeof action !== 'string') {
       console.error('thorin-fetcher: usage fetcher("actionName", {payload})');
@@ -122,10 +124,17 @@ function createFetcher(config, name) {
       console.error('thorin-fetcher: payload must be an object.');
       return this;
     }
+    if (typeof payload === 'object' && payload && typeof payload.filter === 'object' && payload.filter && typeof payload.payload === 'object' && payload.payload) {
+      filter = payload.filter;
+      payload = payload.payload;
+    }
     const fetchBody = {
       type: action,
       payload: payload
     };
+    if (typeof filter === 'object' && filter) {
+      fetchBody.filter = filter;
+    }
     let statusCode, statusMsg;
     return new Promise((resolve, reject) => {
       fetch(config.url, {
