@@ -124,8 +124,10 @@ function createFetcher(config, name) {
       console.error('thorin-fetcher: payload must be an object.');
       return this;
     }
-    if (typeof payload === 'object' && payload && typeof payload.filter === 'object' && payload.filter && typeof payload.payload === 'object' && payload.payload) {
+    if (typeof payload.filter === 'object' && payload.filter) {
       filter = payload.filter;
+    }
+    if (typeof payload.payload === 'object' && payload.payload) {
       payload = payload.payload;
     }
     const fetchBody = {
