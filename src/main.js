@@ -1,5 +1,6 @@
 'use strict';
 import 'whatwg-fetch';
+
 const LOADED_FETCHERS = {},
   FETCHER_EVENTS = {
     error: [],
@@ -107,6 +108,7 @@ function parseError(e, _status) {
  * */
 function createFetcher(config, name) {
   parseConfig(config);
+
   /* This is the fetcher wrapper. */
   function doFetch(action, payload) {
     let filter;
@@ -249,6 +251,7 @@ function createUploadFetcher(config) {
  *  - opt (object) - used with name, creates and saves a fetcher instance.
  * */
 let nidx = 0;
+
 function create(name, opt) {
   // RETURN a fetcher.
   if (typeof name === 'string' && typeof opt === 'undefined') {
@@ -271,6 +274,7 @@ function create(name, opt) {
   }
   console.error('thorin-fetcher: invalid arguments for fetcher()');
 }
+
 module.exports = create;
 /*
  * Attach the createUploadFetcher functionality
@@ -278,3 +282,4 @@ module.exports = create;
 module.exports.upload = createUploadFetcher;
 /* Listen to specific events on all fetchers. */
 module.exports.on = registerFetchEvent.bind(module.exports, undefined);
+module.exports.fetch = global.fetch;
